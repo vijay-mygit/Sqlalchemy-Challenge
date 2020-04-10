@@ -90,13 +90,16 @@ def start():
 @app.route("/api/v1.0/<start_date>")
 def value(start_date):
     session = Session(engine)
-    value = session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)).\
-    filter(Measurement.date >= start_date).all()
+    start_date = dt.datetime.strptime(start_date,'%Y-%m-%d').date()
+    first_date = dt.datetime.strptime('2010-01-01','%Y-%m-%d').date()
+    last_date = dt.datetime.strptime('2017-08-23','%Y-%m-%d').date()
+    sel = [Measurement.date, func.min(Measurement.tobs), func.max(Measurement.tobs), func.avg(Measurement.tobs)]
+    value = session.query(*sel).filter(Measurement.date >= start_date).group_by(Measurement.date).all()
     session.close()    
-    
+      
 
-    if start_date > '2017-08-23' or start_date < '2010-01-01':
-        return jsonify({"error":f"Date entered is out of range"}),404 
+    if start_date > last_date or start_date < first_date:
+        return jsonify({"error":f"Start date entered is out of range, please enter a date between 2010-01-01 to 2017-08-23"}),404 
 
     return jsonify(value)
 
@@ -110,12 +113,20 @@ def end():
 @app.route("/api/v1.0/<start_date>/<end_date>")
 def value_2(start_date,end_date):
     session = Session(engine)
-    value_2 = session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)).\
-    filter(Measurement.date >= start_date).filter(Measurement.date <= end_date).all()
+    start_date = dt.datetime.strptime(start_date,'%Y-%m-%d').date()
+    end_date = dt.datetime.strptime(end_date,'%Y-%m-%d').date()
+    first_date = dt.datetime.strptime('2010-01-01','%Y-%m-%d').date()
+    last_date = dt.datetime.strptime('2017-08-23','%Y-%m-%d').date()
+    value_2 = session.query(Measurement.date, func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)).\
+    filter(Measurement.date >= start_date).filter(Measurement.date <= end_date).group_by(Measurement.date).all()
     session.close()
 
-    if start_date > '2017-08-23' or start_date < '2010-01-01' or end_date > '2017-08-23':
-        return jsonify({"error":f"Date entered is out of range"}),404 
+    if start_date > last_date or start_date < first_date:
+        return jsonify({"error":f"Start Date entered is out of range,please enter a date between 2010-01-01 to 2017-08-23"}),404 
+
+    if end_date > last_date or end_date < start_date:
+        return jsonify({"error":f"End Date entered is out of range,please enter a date between 2010-01-01 to 2017-08-23 greater than Start_date"}),404 
+    
     return jsonify(value_2)
     
     
